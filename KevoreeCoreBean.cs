@@ -78,8 +78,10 @@ namespace Org.Kevoree.Core
                 // TODO : ici charger le component
                 //FlexyClassLoader kcl = bootstrapService.installTypeDefinition(nodeInstance.getTypeDefinition());
                 //Object newInstance = bootstrapService.createInstance(nodeInstance, kcl);
-                //bootstrapService.injectDictionary(nodeInstance, newInstance, false);
+                IRunner newInstance = bootstrapService.createInstance(nodeInstance);
+                bootstrapService.injectDictionary(nodeInstance, newInstance, false);
                 throw new NotImplementedException("TODO : ici faire le chargement dynamique via NuGet (je crois)");
+
                 //return null;
             }
             else
@@ -92,6 +94,7 @@ namespace Org.Kevoree.Core
 
         private MethodAnnotationResolver resolver;
         private java.util.Date lastDate;
+        private BootstrapService bootstrapService;
 
         private void checkBootstrapNode(ContainerRoot currentModel)
         {
@@ -475,5 +478,10 @@ namespace Org.Kevoree.Core
 
 
 
+
+        public void setBootstrapService(BootstrapService bootstrapService)
+        {
+            this.bootstrapService = bootstrapService;
+        }
     }
 }
