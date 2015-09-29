@@ -134,6 +134,14 @@
       <HintPath>..\packages\Org.Kevoree.Core.Model.5.2.7\lib\KevoreeModel.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="KevScript, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\kevoree-dotnet-core-bootstrap\packages\Org.Kevoree.Core.KevScript.5.2.12\lib\KevScript.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="nunit.framework, Version=2.6.4.14350, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <HintPath>..\kevoree-dotnet-core-bootstrap\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -143,8 +151,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AdaptationModel.cs" />
+    <Compile Include="ContextAwareModelService.cs" />
     <Compile Include="KevoreeCoreBean.cs" />
+    <Compile Include="KevoreeCoreBeanSerializationTest.cs" />
     <Compile Include="KevoreeDeployPhase.cs" />
     <Compile Include="KevoreeListeners.cs" />
     <Compile Include="KevoreeSeqDeployPhase.cs" />
@@ -162,6 +171,9 @@
       <Project>{ad3c2f49-5c3b-46d3-a283-600fe11a0aa2}</Project>
       <Name>Api</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

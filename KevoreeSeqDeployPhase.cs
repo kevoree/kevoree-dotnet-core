@@ -53,26 +53,13 @@ namespace Org.Kevoree.Core
                     result = primitive.execute();
                     if (!result)
                     {
-                        /*if(originCore.isAnyTelemetryListener()){
-                            originCore.broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR,"Cmd:["+primitive.toString()+"]",null)
-                        }*/
-                        //originCore.broadcastTelemetry("warn","Error during execution of "+primitive, e.toString())
-                        //Log.warn("Error during execution of {}",primitive)
                         break;
                     }
                 }
                 return result;
             }
-            catch (java.lang.Throwable e)
+            catch (java.lang.Throwable)
             {
-                /*if(originCore.isAnyTelemetryListener()){
-                    try {
-                        originCore.broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR,"Cmd:["+lastPrimitive.toString()+"]",e)
-                    } catch (e: Throwable){
-                       e.printStackTrace()
-                    }
-                }*/
-                //e.printStackTrace()
                 return false;
             }
         }
@@ -95,9 +82,8 @@ namespace Org.Kevoree.Core
                         //Log.trace("Undo adaptation command {} ", c.javaClass.getName())
                         c.undo();
                     }
-                    catch (java.lang.Exception e)
+                    catch (java.lang.Exception)
                     {
-                        //originCore.broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR,"Exception during rollback", e)
                         //Log.warn("Exception during rollback", e)
                     }
                 }

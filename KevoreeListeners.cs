@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Org.Kevoree.Core
 {
+    [Serializable]
     class KevoreeListeners
     {
         private KevoreeCoreBean kevoreeCoreBean;

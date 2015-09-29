@@ -8,34 +8,34 @@ using System.Threading;
 using System.Threading.Tasks;
 using Org.Kevoree.Core.Api.Handler;
 using Org.Kevoree.Core.Api.Adaptation;
+using org.kevoree.pmodeling.api.trace;
+using org.kevoree.kevscript;
+using org.kevoree.api.telemetry;
 
 
 namespace Org.Kevoree.Core
 {
-    public class KevoreeCoreBean
+    [Serializable]
+    public class KevoreeCoreBean : ContextAwareModelService
     {
-
         private readonly KevoreeListeners modelListeners;
+        private KevoreeFactory kevoreeFactory = new DefaultKevoreeFactory();
+        private Org.Kevoree.Core.Api.NodeType nodeInstance;
+        private BlockingCollection<Action> scheduler = new BlockingCollection<Action>(new ConcurrentQueue<Action>());
+        private string nodeName;
+        private ContainerRoot pending = null;
+        private MethodAnnotationResolver resolver;
+        private java.util.Date lastDate;
+        private BootstrapService bootstrapService;
+        private TupleLockCallBack currentLock;
+        private volatile UUIDModel model;
+        LinkedList<UUIDModel> models = new LinkedList<UUIDModel>();
+
+        private ContextAwareModelServiceDelegate delegator = new ContextAwareModelServiceDelegate();
 
         public KevoreeCoreBean()
         {
             this.modelListeners = new KevoreeListeners(this);
-        }
-        private KevoreeFactory kevoreeFactory = new DefaultKevoreeFactory();
-
-        private Org.Kevoree.Core.Api.NodeType nodeInstance;
-
-
-        private BlockingCollection<Action> scheduler = new BlockingCollection<Action>(new ConcurrentQueue<Action>());
-
-
-        private string nodeName;
-
-        private ContainerRoot pending = null;
-
-        public string getNodeName()
-        {
-            return nodeName;
         }
 
         public void setNodeName(string nodeName)
@@ -52,16 +52,6 @@ namespace Org.Kevoree.Core
         {
             return this.kevoreeFactory;
         }
-
-        public void update(ContainerRoot model, UpdateCallback callback, string callerPath)
-        {
-
-            scheduler.Add(() => UpdateModelRunnable(cloneCurrentModel(model), null, callback, callerPath));
-        }
-
-        private TupleLockCallBack currentLock;
-        private volatile UUIDModel model;
-        LinkedList<UUIDModel> models = new LinkedList<UUIDModel>();
 
         private TupleLockCallBack getCurrentLock()
         {
@@ -86,15 +76,10 @@ namespace Org.Kevoree.Core
             }
             else
             {
-                //broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR, "Node not found using name " + nodeName, null);
-                // Log.error("Node not found using name " + nodeName);
                 return null;
             }
         }
 
-        private MethodAnnotationResolver resolver;
-        private java.util.Date lastDate;
-        private BootstrapService bootstrapService;
 
         private void checkBootstrapNode(ContainerRoot currentModel)
         {
@@ -109,28 +94,19 @@ namespace Org.Kevoree.Core
                         if (nodeInstance != null)
                         {
                             resolver = new MethodAnnotationResolver(nodeInstance.GetType());
-                            throw new NotImplementedException("ici faire le lancement de la méthode start sur la méthode trouvée par reflexion.");
+                            //throw new NotImplementedException("ici faire le lancement de la méthode start     r la méthode trouvée par reflexion.");
                             nodeInstance.Start();
+
+                            UUIDModelImpl uuidModel = new UUIDModelImpl(Guid.NewGuid(), kevoreeFactory.createContainerRoot());
+
+                            // TODO : check for concurrency problems here.
+                            this.model = uuidModel;
                         }
-                        else
-                        {
-                            /*broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR,
-                                    "TypeDef installation fail. Node not found using name " + getNodeName(), null);*/
-                            // Log.error("TypeDef installation fail !")
-                        }
-                    }
-                    else
-                    {
-                        /*broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR,
-                                "Node instance name " + getNodeName() + " not found in bootstrap model !", null);*/
-                        // Log.error("Node instance name {} not found in bootstrap
-                        // model !", getNodeName())
                     }
                 }
             }
-            catch (java.lang.Throwable e)
+            catch (java.lang.Throwable)
             {
-                /*broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR, "Error while bootstraping node instance", e);*/
                 // TODO is it possible to display the following log ?
                 try
                 {
@@ -142,7 +118,7 @@ namespace Org.Kevoree.Core
                          */
                     }
                 }
-                catch (java.lang.Throwable ee)
+                catch (java.lang.Throwable)
                 {
                 }
                 finally
@@ -199,17 +175,11 @@ namespace Org.Kevoree.Core
             })).Start();
         }
 
-        /*private UUIDModel model
-        {
-            return this.model;
-        }*/
 
         private bool internalUpdateModel(ContainerRoot proposedNewModel, string callerPath)
         {
             if (proposedNewModel.findNodesByID(this.nodeName) == null)
             {
-                /*broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR, "Asking for update with a NULL model or node name ("
-                    + getNodeName() + ") was not found in target model !", null);*/
                 return false;
             }
             try
@@ -248,50 +218,6 @@ namespace Org.Kevoree.Core
                     ContainerRoot newmodel = readOnlyNewModel;
                     // CHECK FOR HARA KIRI
                     ContainerRoot previousHaraKiriModel = null;
-                    /*if (/ *
-                            * hkh.detectNodeHaraKiri(currentModel,
-                            * readOnlyNewModel, getNodeName())
-                            * /false) {
-                        //broadcastTelemetry(TelemetryEvent.Type.LOG_WARNING, "HaraKiri detected , flush platform", null);
-                        // Log.warn("HaraKiri detected , flush platform")
-                        previousHaraKiriModel = currentModel;
-                        // Creates an empty model, removes the current node
-                        // (harakiri)
-                        newmodel = kevoreeFactory.createContainerRoot();
-                        try {
-                            // Compare the two models and plan the adaptation
-                            AdaptationModel adaptationModel = nodeInstance.plan(currentModel, newmodel);
-                            / *if (Log.DEBUG) {
-                                // Avoid the loop if the debug is not activated
-                                Log.debug("Adaptation model size {}", adaptationModel.getAdaptations().size());
-                            }* /
-                            // Executes the adaptation
-                            ContainerNode rootNode = currentModel.findNodesByID(getNodeName());
-                            Func<bool> afterUpdateTest = () => { return true; };
-                            PrimitiveCommandExecutionHelper.instance$.execute(this, rootNode, adaptationModel,
-                                    nodeInstance, afterUpdateTest, afterUpdateTest, afterUpdateTest);
-                            if (nodeInstance != null) {
-                                Method met = resolver.resolve(org.kevoree.annotation.Stop.class);
-                                met.invoke(nodeInstance);
-                            }
-                            // end of harakiri
-                            nodeInstance = null;
-                            resolver = null;
-                            // place the current model as an empty model (for
-                            // backup)
-
-                            ContainerRoot backupEmptyModel = kevoreeFactory.createContainerRoot();
-                            backupEmptyModel.setInternalReadOnly();
-                            switchToNewModel(backupEmptyModel);
-
-                            // prepares for deployment of the new system
-                            newmodel = readOnlyNewModel;
-                        } catch (Exception e) {
-                            broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR, "Error while updating!", e);
-                            // Log.error("Error while update ", e);return false
-                        }
-                        Log.debug("End HaraKiri");
-                    }*/
                     // Checks and bootstrap the node
                     checkBootstrapNode(newmodel);
                     if (this.model != null)
@@ -314,13 +240,9 @@ namespace Org.Kevoree.Core
                             // Compare the two models and plan the adaptation
                             // Log.info("Comparing models and planning
                             // adaptation.")
-                            /*broadcastTelemetry(TelemetryEvent.Type.MODEL_COMPARE_AND_PLAN,
-                                    "Comparing models and planning adaptation.", null);*/
                             AdaptationModel adaptationModel = nodeInstance.plan(currentModel, newmodel);
                             // Execution of the adaptation
                             // Log.info("Launching adaptation of the system.")
-                            /*broadcastTelemetry(TelemetryEvent.Type.PLATFORM_UPDATE_START,
-                                    "Launching adaptation of the system.", null);*/
                             updateContext = new UpdateContext(currentModel, newmodel, callerPath);
 
                             UpdateContext final_updateContext = updateContext;
@@ -341,28 +263,20 @@ namespace Org.Kevoree.Core
                         }
                         else
                         {
-                            //broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR, "Node is not initialized", null);
-                            // Log.error("Node is not initialized")
                             deployResult = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
-                        //broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR, "Error while updating", e);
-                        // Log.error("Error while updating", e)
                         deployResult = false;
                     }
                     if (deployResult)
                     {
                         switchToNewModel(newmodel);
-                        /*broadcastTelemetry(TelemetryEvent.Type.PLATFORM_UPDATE_SUCCESS, "Update sucessfully completed.", null); */
-                        // Log.info("Update sucessfully completed.")
                     }
                     else
                     {
                         // KEEP FAIL MODEL, TODO
-                        // Log.warn("Update failed")
-                        /* broadcastTelemetry(TelemetryEvent.Type.PLATFORM_UPDATE_FAIL, "Update failed !", null); */
                         // IF HARAKIRI
                         if (previousHaraKiriModel != null)
                         {
@@ -371,22 +285,18 @@ namespace Org.Kevoree.Core
                         }
                     }
                     long milliEnd = java.lang.System.currentTimeMillis() - milli;
-                    //Log.info("End deploy result={}-{}", deployResult, milliEnd);
                     pending = null;
                     return deployResult;
 
                 }
                 else
                 {
-                    //Log.warn("PreCheck or InitUpdate Step was refused, update aborded !");
                     return false;
                 }
 
             }
-            catch (java.lang.Throwable e)
+            catch (java.lang.Throwable)
             {
-                //broadcastTelemetry(TelemetryEvent.Type.LOG_ERROR, "Error while updating.", e);
-                // Log.error("Error while update", e)
                 return false;
             }
         }
@@ -477,6 +387,177 @@ namespace Org.Kevoree.Core
         public void setBootstrapService(BootstrapService bootstrapService)
         {
             this.bootstrapService = bootstrapService;
+        }
+
+
+        private void UpdateSequenceRunnable(TraceSequence sequence, UpdateCallback callback, string callerPath)
+        {
+            try
+            {
+                ContainerRoot newModel = (ContainerRoot)kevoreeFactory.createModelCloner().clone(this.model.getModel(), false);
+                sequence.applyOn(newModel);
+                bool res = internalUpdateModel(cloneCurrentModel(newModel), callerPath);
+                new Thread(new ThreadStart(() =>
+                {
+                    if (callback != null)
+                    {
+                        callback(res);
+                    }
+                })).Start();
+            }
+            catch (Exception)
+            {
+                //Log.error("error while apply trace sequence", e)
+                callback(false);
+            }
+        }
+
+        private void UpdateScriptRunnable(string script, UpdateCallback callback, string callerPath)
+        {
+            try
+            {
+                ContainerRoot newModel = (ContainerRoot)kevoreeFactory.createModelCloner().clone(model.getModel(), false);
+                new KevScriptEngine().execute(script, newModel);
+                bool res = internalUpdateModel(cloneCurrentModel(newModel), callerPath);
+                new Thread(new ThreadStart(() =>
+                {
+                    if (callback != null)
+                    {
+                        callback(res);
+                    }
+                })).Start();
+            }
+            catch (Exception)
+            {
+                callback(false);
+            }
+        }
+
+
+        private void ReleaseLockCallable(Guid uuid)
+        {
+            if (currentLock != null)
+            {
+                if (currentLock.getGuid() == uuid)
+                {
+                    currentLock = null;
+
+                    // TODO ?
+                    /*futurWatchDog.cancel(true);
+                    futurWatchDog = null;
+                    lockWatchDog.shutdownNow();
+                    lockWatchDog = null;*/
+                }
+            }
+
+        }
+
+        private void AcquireLock(LockCallBack callBack, long timeout)
+        {
+            if (currentLock != null)
+            {
+                try
+                {
+                    callBack.run(null, true);
+                }
+                catch (Exception)
+                {
+                    //Log.error("Exception inside a LockCallback with argument {}, {}", t, null, true)
+                }
+            }
+            else
+            {
+                Guid lockUUID = Guid.NewGuid();
+                currentLock = new TupleLockCallBack(callBack, lockUUID);
+                //lockWatchDog = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+                //futurWatchDog = lockWatchDog.schedule(new WatchDogCallable(), timeout, TimeUnit.MILLISECONDS);
+                try
+                {
+                    callBack.run(lockUUID, false);
+                }
+                catch (Exception)
+                {
+                    //Log.error("Exception inside a LockCallback with argument {}, {}", t, lockUUID.toString(), false)
+                }
+            }
+        }
+
+
+        // START ContextAwareModelServiceImpl
+        public UUIDModel getCurrentModel()
+        {
+            return model;
+        }
+
+        public ContainerRoot getPendingModel()
+        {
+            return pending;
+        }
+
+        public void compareAndSwap(ContainerRoot model, Guid uuid, UpdateCallback callback, String callerPath)
+        {
+            scheduler.Add(() => UpdateModelRunnable(cloneCurrentModel(model), uuid, callback, callerPath));
+        }
+
+
+        public void update(ContainerRoot model, UpdateCallback callback, string callerPath)
+        {
+            scheduler.Add(() => UpdateModelRunnable(cloneCurrentModel(model), null, callback, callerPath));
+        }
+
+        public void registerModelListener(ModelListener listener, String callerPath)
+        {
+            modelListeners.addListener(listener);
+        }
+
+        public void unregisterModelListener(ModelListener listener, String callerPath)
+        {
+            modelListeners.removeListener(listener);
+        }
+
+        public void acquireLock(LockCallBack callBack, long timeout, String callerPath)
+        {
+            scheduler.Add(() => AcquireLock(callBack, timeout));
+        }
+
+        public void releaseLock(Guid uuid, String callerPath)
+        {
+            if (uuid != null)
+            {
+                if (scheduler != null)
+                {
+                    scheduler.Add(() => ReleaseLockCallable(uuid));
+                }
+            }
+        }
+
+        public string getNodeName()
+        {
+            return nodeName;
+        }
+
+        public void submitScript(String script, UpdateCallback callback, String callerPath)
+        {
+            if (script != null && currentLock == null)
+            {
+                scheduler.Add(() => UpdateScriptRunnable(script, callback, callerPath));
+            }
+            else
+            {
+                callback(false);
+            }
+        }
+
+        public void submitSequence(TraceSequence sequence, UpdateCallback callback, String callerPath)
+        {
+            if (sequence != null && currentLock == null)
+            {
+                scheduler.Add(() => UpdateSequenceRunnable(sequence, callback, callerPath));
+            }
+            else
+            {
+                callback(false);
+            }
         }
     }
 }
