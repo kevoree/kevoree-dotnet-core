@@ -4,8 +4,6 @@ using Org.Kevoree.Core.Api;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Org.Kevoree.Core.Api.Handler;
@@ -70,7 +68,7 @@ namespace Org.Kevoree.Core
             return this.currentLock;
         }
 
-        private Object bootstrapNodeType(ContainerRoot model, String nodeName)
+        private INodeRunner bootstrapNodeType(ContainerRoot model, String nodeName)
         {
             ContainerNode nodeInstance = model.findNodesByID(nodeName);
             if (nodeInstance != null)
@@ -78,11 +76,13 @@ namespace Org.Kevoree.Core
                 // TODO : ici charger le component
                 //FlexyClassLoader kcl = bootstrapService.installTypeDefinition(nodeInstance.getTypeDefinition());
                 //Object newInstance = bootstrapService.createInstance(nodeInstance, kcl);
-                IRunner newInstance = bootstrapService.createInstance(nodeInstance);
+                var newInstance = bootstrapService.createInstance(nodeInstance);
                 bootstrapService.injectDictionary(nodeInstance, newInstance, false);
-                throw new NotImplementedException("TODO : ici faire le chargement dynamique via NuGet (je crois)");
+                //throw new NotImplementedException("TODO : ici faire le chargement dynamique via NuGet (je crois)");
 
-                //return null;
+                // scan pour une classe d'un type ou d'un autre, on garde toujours la première trouvée
+
+                return newInstance;
             }
             else
             {
@@ -105,17 +105,12 @@ namespace Org.Kevoree.Core
                     ContainerNode foundNode = currentModel.findNodesByID(getNodeName());
                     if (foundNode != null)
                     {
-                        nodeInstance = (Org.Kevoree.Core.Api.NodeType)bootstrapNodeType(currentModel, getNodeName());
+                        nodeInstance = bootstrapNodeType(currentModel, getNodeName());
                         if (nodeInstance != null)
                         {
                             resolver = new MethodAnnotationResolver(nodeInstance.GetType());
                             throw new NotImplementedException("ici faire le lancement de la méthode start sur la méthode trouvée par reflexion.");
-                            /*Method met = resolver.resolve(org.kevoree.annotation.Start.class);
-                            met.invoke(nodeInstance);
-                            UUIDModelImpl uuidModel = new UUIDModelImpl(UUID.randomUUID(),
-                                    kevoreeFactory.createContainerRoot());
-                            model.set(uuidModel);
-                             * */
+                            nodeInstance.Start();
                         }
                         else
                         {
