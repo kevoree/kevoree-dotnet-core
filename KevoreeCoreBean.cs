@@ -11,12 +11,14 @@ using Org.Kevoree.Core.Api.Adaptation;
 using org.kevoree.pmodeling.api.trace;
 using org.kevoree.kevscript;
 using org.kevoree.api.telemetry;
+using System.Runtime.Remoting;
+using Org.Kevoree.Core.Marshalled;
 
 
 namespace Org.Kevoree.Core
 {
     [Serializable]
-    public class KevoreeCoreBean : ContextAwareModelService
+    public class KevoreeCoreBean : MarshalByRefObject, ContextAwareModelService
     {
         private readonly KevoreeListeners modelListeners;
         private KevoreeFactory kevoreeFactory = new DefaultKevoreeFactory();
@@ -29,9 +31,7 @@ namespace Org.Kevoree.Core
         private BootstrapService bootstrapService;
         private TupleLockCallBack currentLock;
         private volatile UUIDModel model;
-        LinkedList<UUIDModel> models = new LinkedList<UUIDModel>();
-
-        private ContextAwareModelServiceDelegate delegator = new ContextAwareModelServiceDelegate();
+        LinkedList<UUIDModel> models = new LinkedList<UUIDModel>();        
 
         public KevoreeCoreBean()
         {
@@ -240,7 +240,11 @@ namespace Org.Kevoree.Core
                             // Compare the two models and plan the adaptation
                             // Log.info("Comparing models and planning
                             // adaptation.")
-                            AdaptationModel adaptationModel = nodeInstance.plan(currentModel, newmodel);
+                            
+                            var dkf = new DefaultKevoreeFactory();
+                            var modelCompare = dkf.createModelCompare();
+                            var traces = modelCompare.diff(currentModel, newmodel);
+                            AdaptationModel adaptationModel = nodeInstance.plan(new ContainerRootMarshalled(currentModel), new ContainerRootMarshalled(newmodel), new TracesMarshalled(traces));
                             // Execution of the adaptation
                             // Log.info("Launching adaptation of the system.")
                             updateContext = new UpdateContext(currentModel, newmodel, callerPath);
@@ -266,7 +270,7 @@ namespace Org.Kevoree.Core
                             deployResult = false;
                         }
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
                         deployResult = false;
                     }
@@ -387,6 +391,11 @@ namespace Org.Kevoree.Core
         public void setBootstrapService(BootstrapService bootstrapService)
         {
             this.bootstrapService = bootstrapService;
+        }
+
+        public BootstrapService getBootstrapService()
+        {
+            return this.bootstrapService;
         }
 
 

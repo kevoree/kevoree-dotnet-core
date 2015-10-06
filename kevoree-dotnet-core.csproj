@@ -151,15 +151,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Marshalled\ChannelMarshalled.cs" />
+    <Compile Include="Marshalled\ContainerNodeMarshalled.cs" />
+    <Compile Include="Marshalled\ContainerRootMarshalled.cs" />
     <Compile Include="ContextAwareModelService.cs" />
+    <Compile Include="Marshalled\FragmentDictionaryMarshalled.cs" />
+    <Compile Include="Marshalled\InstanceMarshalled.cs" />
     <Compile Include="KevoreeCoreBean.cs" />
-    <Compile Include="KevoreeCoreBeanSerializationTest.cs" />
     <Compile Include="KevoreeDeployPhase.cs" />
     <Compile Include="KevoreeListeners.cs" />
     <Compile Include="KevoreeSeqDeployPhase.cs" />
+    <Compile Include="Marshalled\KMFContainerMarshalled.cs" />
+    <Compile Include="Marshalled\MBindingMarshalled.cs" />
+    <Compile Include="Marshalled\PortMarshalled.cs" />
     <Compile Include="MethodAnnotationResolver.cs" />
+    <Compile Include="Marshalled\ModelSetTraceMarshalled.cs" />
+    <Compile Include="Marshalled\ModelRemoveTraceMarshalled.cs" />
+    <Compile Include="Marshalled\ModelAddTraceMarshalled.cs" />
+    <Compile Include="Marshalled\ModelTraceMarshalled.cs" />
     <Compile Include="PrimitiveCommandExecutionHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TracesMarshalled.cs" />
     <Compile Include="TupleLockCallBack.cs" />
     <Compile Include="UUIDModelImpl.cs" />
   </ItemGroup>
