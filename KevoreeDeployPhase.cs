@@ -1,4 +1,5 @@
 ﻿using Org.Kevoree.Core.Api;
+using Org.Kevoree.Core.Api.Command;
 
 namespace Org.Kevoree.Core
 {
@@ -6,7 +7,7 @@ namespace Org.Kevoree.Core
     {
         void rollBack();
         bool runPhase();
-        void populate(PrimitiveCommand cmd);
+        void populate(ICommand cmd);
         KevoreeDeployPhase getSucessor();
         void setSucessor(KevoreeDeployPhase kevoreeDeployPhase);
     }

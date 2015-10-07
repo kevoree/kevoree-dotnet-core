@@ -1,4 +1,4 @@
-﻿using Org.Kevoree.Core.Api;
+﻿using Org.Kevoree.Core.Api.Command;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,7 +11,7 @@ namespace Org.Kevoree.Core
 
         private bool rollbackPerformed = false;
 
-        private List<PrimitiveCommand> primitives = new List<PrimitiveCommand>();
+        private List<ICommand> primitives = new List<ICommand>();
 
         public KevoreeSeqDeployPhase(KevoreeCoreBean originCore)
         {
@@ -29,7 +29,7 @@ namespace Org.Kevoree.Core
             this.successor = successor;
         }
 
-        public void populate(PrimitiveCommand cmd)
+        public void populate(ICommand cmd)
         {
             primitives.Add(cmd);
             rollbackPerformed = false;
@@ -42,7 +42,7 @@ namespace Org.Kevoree.Core
             {
                 return true;
             }
-            PrimitiveCommand lastPrimitive = null;
+            ICommand lastPrimitive = null;
             try
             {
                 var result = true;
@@ -50,7 +50,7 @@ namespace Org.Kevoree.Core
                 foreach (var primitive in primitives)
                 {
                     lastPrimitive = primitive;
-                    result = primitive.execute();
+                    result = primitive.Execute();
                     if (!result)
                     {
                         break;
@@ -80,7 +80,7 @@ namespace Org.Kevoree.Core
                     try
                     {
                         //Log.trace("Undo adaptation command {} ", c.javaClass.getName())
-                        c.undo();
+                        c.Undo();
                     }
                     catch (java.lang.Exception)
                     {

@@ -79,52 +79,45 @@ namespace Org.Kevoree.Core
                 }
             });
 
-
-            if (populateResult)
+            */
+            /*var phaseResult = phase.runPhase();
+            if (phaseResult)
             {
-                var phaseResult = phase.runPhase();
-                if (phaseResult)
+                var nextStep = step.getNextStep();
+                var subResult = false;
+                if (nextStep != null)
                 {
-                    var nextStep = step.getNextStep();
-                    var subResult = false;
-                    if (nextStep != null)
-                    {
-                        /*val nextPhase = if (nextStep is ParallelStep) {
-                            KevoreeParDeployPhase(originCore)
-                        } else {
-                            KevoreeSeqDeployPhase(originCore)
-                        }* /
-                        var nextPhase = new KevoreeSeqDeployPhase(originCore);
-                        phase.setSucessor(nextPhase);
-                        subResult = executeStep(originCore, rootNode, nextStep, nodeInstance, nextPhase, preRollBack);
-                    }
-                    else
-                    {
-                        subResult = true;
-                    }
-                    if (!subResult)
-                    {
-                        preRollBack();
-                        phase.rollBack();
-                        return false;
-                    }
-                    else
-                    {
-                        return true;
-                    }
+                    /*val nextPhase = if (nextStep is ParallelStep) {
+                        KevoreeParDeployPhase(originCore)
+                    } else {
+                        KevoreeSeqDeployPhase(originCore)
+                    }* /
+                    var nextPhase = new KevoreeSeqDeployPhase(originCore);
+                    phase.setSucessor(nextPhase);
+                    subResult = executeStep(originCore, rootNode, nextStep, nodeInstance, nextPhase, preRollBack);
                 }
                 else
+                {
+                    subResult = true;
+                }
+                if (!subResult)
                 {
                     preRollBack();
                     phase.rollBack();
                     return false;
                 }
+                else
+                {
+                    return true;
+                }
             }
             else
             {
-                //Log.warn("Primitive mapping error")
+                preRollBack();
+                phase.rollBack();
                 return false;
             }*/
+           
         }
     }
 }
