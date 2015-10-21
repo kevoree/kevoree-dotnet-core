@@ -12,7 +12,10 @@ using org.kevoree.pmodeling.api.trace;
 using org.kevoree.kevscript;
 using org.kevoree.api.telemetry;
 using System.Runtime.Remoting;
+using Org.Kevoree.Core.Api.IMarshalled;
 using Org.Kevoree.Core.Marshalled;
+using org.kevoree.pmodeling.api.json;
+using org.kevoree.pmodeling.api;
 
 
 namespace Org.Kevoree.Core
@@ -25,13 +28,13 @@ namespace Org.Kevoree.Core
         private Org.Kevoree.Core.Api.NodeType nodeInstance;
         private BlockingCollection<Action> scheduler = new BlockingCollection<Action>(new ConcurrentQueue<Action>());
         private string nodeName;
-        private ContainerRoot pending = null;
-        private MethodAnnotationResolver resolver;
-        private java.util.Date lastDate;
+        private IContainerRootMarshalled pending = null;
+        //private MethodAnnotationResolver resolver;
+        //private java.util.Date lastDate;
         private BootstrapService bootstrapService;
         private TupleLockCallBack currentLock;
         private volatile UUIDModel model;
-        LinkedList<UUIDModel> models = new LinkedList<UUIDModel>();        
+        private readonly LinkedList<UUIDModel> models = new LinkedList<UUIDModel>();
 
         public KevoreeCoreBean()
         {
@@ -41,11 +44,6 @@ namespace Org.Kevoree.Core
         public void setNodeName(string nodeName)
         {
             this.nodeName = nodeName;
-        }
-
-        private ContainerRoot cloneCurrentModel(ContainerRoot pmodel)
-        {
-            return (ContainerRoot)kevoreeFactory.createModelCloner().clone(pmodel, true);
         }
 
         public KevoreeFactory getFactory()
@@ -58,9 +56,10 @@ namespace Org.Kevoree.Core
             return this.currentLock;
         }
 
-        private INodeRunner bootstrapNodeType(ContainerRoot model, String nodeName)
+        private INodeRunner bootstrapNodeType(IContainerRootMarshalled model, String nodeName)
         {
-            ContainerNode nodeInstance = model.findNodesByID(nodeName);
+            var containerNode = model.findNodesByID(nodeName);
+            ContainerNode nodeInstance = CloneContainerNode(containerNode);
             if (nodeInstance != null)
             {
                 // TODO : ici charger le component
@@ -81,23 +80,22 @@ namespace Org.Kevoree.Core
         }
 
 
-        private void checkBootstrapNode(ContainerRoot currentModel)
+        private void checkBootstrapNode(IContainerRootMarshalled currentModel)
         {
             try
             {
                 if (nodeInstance == null)
                 {
-                    ContainerNode foundNode = currentModel.findNodesByID(getNodeName());
+                    IContainerNodeMarshalled foundNode = currentModel.findNodesByID(getNodeName());
                     if (foundNode != null)
                     {
                         nodeInstance = bootstrapNodeType(currentModel, getNodeName());
                         if (nodeInstance != null)
                         {
-                            resolver = new MethodAnnotationResolver(nodeInstance.GetType());
-                            //throw new NotImplementedException("ici faire le lancement de la méthode start     r la méthode trouvée par reflexion.");
                             nodeInstance.Start();
 
-                            UUIDModelImpl uuidModel = new UUIDModelImpl(Guid.NewGuid(), kevoreeFactory.createContainerRoot());
+
+                            UUIDModelImpl uuidModel = new UUIDModelImpl(Guid.NewGuid(), new ContainerRootMarshalled(kevoreeFactory.createContainerRoot()));
 
                             // TODO : check for concurrency problems here.
                             this.model = uuidModel;
@@ -125,11 +123,11 @@ namespace Org.Kevoree.Core
                 {
                 }
                 nodeInstance = null;
-                resolver = null;
+               // resolver = null;
             }
         }
 
-        private void UpdateModelRunnable(ContainerRoot targetModel, Guid? uuid, UpdateCallback callback,
+        private void UpdateModelRunnable(IContainerRootMarshalled targetModel, Guid? uuid, UpdateCallback callback,
                 string callerPath)
         {
             bool res = false;
@@ -176,7 +174,7 @@ namespace Org.Kevoree.Core
         }
 
 
-        private bool internalUpdateModel(ContainerRoot proposedNewModel, string callerPath)
+        private bool internalUpdateModel(IContainerRootMarshalled proposedNewModel, string callerPath)
         {
             if (proposedNewModel.findNodesByID(this.nodeName) == null)
             {
@@ -184,7 +182,7 @@ namespace Org.Kevoree.Core
             }
             try
             {
-                ContainerRoot readOnlyNewModel = proposedNewModel;
+                var readOnlyNewModel = CloneContainerRoot(proposedNewModel);
                 if (readOnlyNewModel.isReadOnly())
                 {
                     readOnlyNewModel = (ContainerRoot)kevoreeFactory.createModelCloner().clone(readOnlyNewModel, false);
@@ -200,38 +198,37 @@ namespace Org.Kevoree.Core
                 ContainerRoot currentModel;
                 if (this.model != null)
                 {
-                    currentModel = this.model.getModel();
+
+                    var serialized = this.model.getModel().serialize();
+                    var kf = new org.kevoree.factory.DefaultKevoreeFactory();
+                    currentModel = (ContainerRoot)kf.createJSONLoader().loadModelFromString(serialized).get(0);
                 }
                 else
                 {
                     currentModel = null;
                 }
-                //Log.trace("Before listeners PreCheck !");
-                UpdateContext updateContext = new UpdateContext(currentModel, readOnlyNewModel, callerPath);
+                UpdateContext updateContext = new UpdateContext(new ContainerRootMarshalled(currentModel), new ContainerRootMarshalled(readOnlyNewModel), callerPath);
                 bool preCheckResult = modelListeners.preUpdate(updateContext);
-                //Log.trace("PreCheck result = " + preCheckResult);
-                //Log.trace("Before listeners InitUpdate !");
                 bool initUpdateResult = modelListeners.initUpdate(updateContext);
-                //Log.debug("InitUpdate result = " + initUpdateResult);
                 if (preCheckResult && initUpdateResult)
                 {
-                    ContainerRoot newmodel = readOnlyNewModel;
+                    IContainerRootMarshalled newmodel = new ContainerRootMarshalled(readOnlyNewModel);
                     // CHECK FOR HARA KIRI
-                    ContainerRoot previousHaraKiriModel = null;
+                    IContainerRootMarshalled previousHaraKiriModel = null;
                     // Checks and bootstrap the node
                     checkBootstrapNode(newmodel);
                     if (this.model != null)
                     {
-                        currentModel = this.model.getModel();
+                        var serialized = this.model.getModel().serialize();
+                        var kf = new org.kevoree.factory.DefaultKevoreeFactory();
+                        currentModel = (ContainerRoot)kf.createJSONLoader().loadModelFromString(serialized).get(0);
                     }
                     else
                     {
                         currentModel = null;
                     }
                     long milli = java.lang.System.currentTimeMillis();
-                    /*if (Log.DEBUG) {
-                        Log.debug("Begin update model {}", milli);
-                    }*/
+                    
                     bool deployResult;
                     try
                     {
@@ -240,14 +237,23 @@ namespace Org.Kevoree.Core
                             // Compare the two models and plan the adaptation
                             // Log.info("Comparing models and planning
                             // adaptation.")
-                            
+
                             var dkf = new DefaultKevoreeFactory();
                             var modelCompare = dkf.createModelCompare();
-                            var traces = modelCompare.diff(currentModel, newmodel);
-                            AdaptationModel adaptationModel = nodeInstance.plan(new ContainerRootMarshalled(currentModel), new ContainerRootMarshalled(newmodel), new TracesMarshalled(traces));
+
+                            // TODO : clean up -> cloned
+                            var newmodel2 = CloneContainerRoot(newmodel);
+
+                            /*  start serialize model */
+                            /*var kf = new org.kevoree.factory.DefaultKevoreeFactory();
+                            var serialized = kf.createJSONSerializer().serialize(newmodel2);
+                            Console.WriteLine(serialized);*/
+                            /*  end serialize model */
+
+                            var traces = modelCompare.diff(currentModel, newmodel2);
+                            AdaptationModel adaptationModel = nodeInstance.plan(new ContainerRootMarshalled(currentModel), newmodel, new TracesMarshalled(traces));
                             // Execution of the adaptation
-                            // Log.info("Launching adaptation of the system.")
-                            updateContext = new UpdateContext(currentModel, newmodel, callerPath);
+                            updateContext = new UpdateContext(new ContainerRootMarshalled(currentModel), new ContainerRootMarshalled(newmodel2), callerPath);
 
                             UpdateContext final_updateContext = updateContext;
                             Func<bool> afterUpdateTest = () => { return modelListeners.afterUpdate(final_updateContext); };
@@ -256,14 +262,18 @@ namespace Org.Kevoree.Core
                                 modelListeners.postRollback(final_updateContext);
                                 return true;
                             };
-                            //PreCommand preCmd = new PreCommand(this, updateContext, modelListeners);
 
                             Func<bool> preCmdPreRollbackTest = getPreCmdPreRollbackTest(updateContext, modelListeners);
 
-                            ContainerNode rootNode = newmodel.findNodesByID(getNodeName());
+                            IContainerNodeMarshalled rootNode = newmodel.findNodesByID(getNodeName());
                             deployResult = PrimitiveCommandExecutionHelper.execute(this, rootNode,
                                     adaptationModel, nodeInstance, afterUpdateTest, preCmdPreRollbackTest,
                                     postRollbackTest);
+
+                            if (deployResult)
+                            {
+                                this.model = new UUIDModelImpl(Guid.NewGuid(), newmodel);
+                            }
                         }
                         else
                         {
@@ -305,14 +315,35 @@ namespace Org.Kevoree.Core
             }
         }
 
-        private void switchToNewModel(ContainerRoot c)
+        private ContainerRoot CloneContainerRoot(IContainerRootMarshalled newmodel)
         {
-            ContainerRoot cc = c;
+            var kf = new DefaultKevoreeFactory();
+            JSONModelLoader loader = new JSONModelLoader(kf);
+            var serialized = newmodel.serialize();
+            Console.WriteLine("ContainerRoot >>>> " + serialized);
+            return (ContainerRoot)loader.loadModelFromString(serialized).get(0);
+        }
+
+        private ContainerNode CloneContainerNode(IContainerNodeMarshalled newmodel)
+        {
+
+
+            return newmodel.getDelegate();
+            /*
+            var fac = new DefaultKevoreeFactory();
+            var loader = fac.createJSONLoader();
+            var serialized = newmodel.serialize();
+            Console.WriteLine("ContainerNode >>>> " + serialized);
+            var parsed = loader.loadModelFromString(serialized);
+            return (ContainerNode)parsed.get(0);*/
+        }
+
+        private void switchToNewModel(IContainerRootMarshalled c)
+        {
+            ContainerRoot cc = CloneContainerRoot(c);
             if (!c.isReadOnly())
             {
-                //broadcastTelemetry(TelemetryEvent.Type.LOG_WARNING, "It is not safe to store ReadWrite model!", null);
-                // Log.error("It is not safe to store ReadWrite model")
-                cc = (ContainerRoot)kevoreeFactory.createModelCloner().clone(c, true);
+                cc = (ContainerRoot)kevoreeFactory.createModelCloner().clone(cc, true);
             }
             // current model is backed-up
             UUIDModel previousModel = model;
@@ -324,14 +355,12 @@ namespace Org.Kevoree.Core
             if (models.Count > 15)
             {
                 models.RemoveFirst();
-                //Log.debug("Garbage old previous model");
             }
             // Changes the current model by the new model   
             if (cc != null)
             {
-                UUIDModel uuidModel = new UUIDModelImpl(Guid.NewGuid(), cc);
+                UUIDModel uuidModel = new UUIDModelImpl(Guid.NewGuid(), new ContainerRootMarshalled(cc));
                 this.model = uuidModel;
-                lastDate = new java.util.Date(java.lang.System.currentTimeMillis());
                 // Fires the update to listeners
                 modelListeners.notifyAllListener();
             }
@@ -350,25 +379,8 @@ namespace Org.Kevoree.Core
                 return true;
             };
         }
-
-
-
-        /*private Action UpdateModelRunnable(ContainerRoot targetModel, Guid uuid, UpdateCallback callback,
-				string callerPath)
-        {
-            throw new NotImplementedException();
-        }*/
-
-
-
-
-
         public void start()
         {
-
-            // TODO : 
-            //modelListeners.start(getNodeName());
-            //broadcastTelemetry(TelemetryEvent.Type.PLATFORM_START, "Kevoree Start event : node name = " + getNodeName(), null);
 
             Thread t = new Thread(new ThreadStart(() =>
             {
@@ -380,9 +392,6 @@ namespace Org.Kevoree.Core
             }));
 
             t.Start();
-
-            //UUIDModelImpl uuidModel = new UUIDModelImpl(UUID.randomUUID(), kevoreeFactory.createContainerRoot());
-            //model.set(uuidModel);
         }
 
 
@@ -403,9 +412,11 @@ namespace Org.Kevoree.Core
         {
             try
             {
-                ContainerRoot newModel = (ContainerRoot)kevoreeFactory.createModelCloner().clone(this.model.getModel(), false);
+                string serialized = this.model.getModel().serialize();
+                var kf = new org.kevoree.factory.DefaultKevoreeFactory();
+                var newModel = (ContainerRoot)kf.createJSONLoader().loadModelFromString(serialized).get(0);
                 sequence.applyOn(newModel);
-                bool res = internalUpdateModel(cloneCurrentModel(newModel), callerPath);
+                bool res = internalUpdateModel(new ContainerRootMarshalled(newModel), callerPath);
                 new Thread(new ThreadStart(() =>
                 {
                     if (callback != null)
@@ -416,7 +427,6 @@ namespace Org.Kevoree.Core
             }
             catch (Exception)
             {
-                //Log.error("error while apply trace sequence", e)
                 callback(false);
             }
         }
@@ -425,9 +435,11 @@ namespace Org.Kevoree.Core
         {
             try
             {
-                ContainerRoot newModel = (ContainerRoot)kevoreeFactory.createModelCloner().clone(model.getModel(), false);
+                var serialized = model.getModel().serialize();
+                var kf = new org.kevoree.factory.DefaultKevoreeFactory();
+                var newModel = (ContainerRoot)kf.createJSONLoader().loadModelFromString(serialized).get(0);
                 new KevScriptEngine().execute(script, newModel);
-                bool res = internalUpdateModel(cloneCurrentModel(newModel), callerPath);
+                bool res = internalUpdateModel(new ContainerRootMarshalled(newModel), callerPath);
                 new Thread(new ThreadStart(() =>
                 {
                     if (callback != null)
@@ -450,12 +462,6 @@ namespace Org.Kevoree.Core
                 if (currentLock.getGuid() == uuid)
                 {
                     currentLock = null;
-
-                    // TODO ?
-                    /*futurWatchDog.cancel(true);
-                    futurWatchDog = null;
-                    lockWatchDog.shutdownNow();
-                    lockWatchDog = null;*/
                 }
             }
 
@@ -471,22 +477,20 @@ namespace Org.Kevoree.Core
                 }
                 catch (Exception)
                 {
-                    //Log.error("Exception inside a LockCallback with argument {}, {}", t, null, true)
                 }
             }
             else
             {
                 Guid lockUUID = Guid.NewGuid();
                 currentLock = new TupleLockCallBack(callBack, lockUUID);
-                //lockWatchDog = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
-                //futurWatchDog = lockWatchDog.schedule(new WatchDogCallable(), timeout, TimeUnit.MILLISECONDS);
+
                 try
                 {
                     callBack.run(lockUUID, false);
                 }
                 catch (Exception)
                 {
-                    //Log.error("Exception inside a LockCallback with argument {}, {}", t, lockUUID.toString(), false)
+                    
                 }
             }
         }
@@ -498,20 +502,20 @@ namespace Org.Kevoree.Core
             return model;
         }
 
-        public ContainerRoot getPendingModel()
+        public IContainerRootMarshalled getPendingModel()
         {
             return pending;
         }
 
-        public void compareAndSwap(ContainerRoot model, Guid uuid, UpdateCallback callback, String callerPath)
+        public void compareAndSwap(IContainerRootMarshalled model, Guid uuid, UpdateCallback callback, String callerPath)
         {
-            scheduler.Add(() => UpdateModelRunnable(cloneCurrentModel(model), uuid, callback, callerPath));
+            scheduler.Add(() => UpdateModelRunnable(model, uuid, callback, callerPath));
         }
 
 
-        public void update(ContainerRoot model, UpdateCallback callback, string callerPath)
+        public void update(IContainerRootMarshalled model, UpdateCallback callback, string callerPath)
         {
-            scheduler.Add(() => UpdateModelRunnable(cloneCurrentModel(model), null, callback, callerPath));
+            scheduler.Add(() => UpdateModelRunnable(model, null, callback, callerPath));
         }
 
         public void registerModelListener(ModelListener listener, String callerPath)

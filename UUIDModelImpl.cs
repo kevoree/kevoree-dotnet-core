@@ -1,24 +1,24 @@
 ﻿using Org.Kevoree.Core.Api;
 using System;
 using org.kevoree;
+using Org.Kevoree.Core.Api.IMarshalled;
 
 namespace Org.Kevoree.Core
 {
-    class UUIDModelImpl : UUIDModel
+    class UUIDModelImpl : MarshalByRefObject, UUIDModel
     {
         private Guid guid;
-        private ContainerRoot cc;
+        private IContainerRootMarshalled cc;
 
-        public UUIDModelImpl(Guid guid, org.kevoree.ContainerRoot cc)
+        public UUIDModelImpl(Guid guid, IContainerRootMarshalled cc)
         {
-            // TODO: Complete member initialization
             this.guid = guid;
             this.cc = cc;
         }
 
         public Guid getUUID() { return this.guid; }
 
-        public ContainerRoot getModel() { return this.cc; }
+        public IContainerRootMarshalled getModel() { return this.cc; }
 
     }
 }

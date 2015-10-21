@@ -2,6 +2,7 @@
 using org.kevoree.pmodeling.api.trace;
 using Org.Kevoree.Core.Api;
 using Org.Kevoree.Core.Api.Handler;
+using Org.Kevoree.Core.Api.IMarshalled;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,11 +15,11 @@ namespace Org.Kevoree.Core
     {
         UUIDModel getCurrentModel();
 
-        ContainerRoot getPendingModel();
+        IContainerRootMarshalled getPendingModel();
 
-        void compareAndSwap(ContainerRoot model, Guid uuid, UpdateCallback callback, String callerPath);
+        void compareAndSwap(IContainerRootMarshalled model, Guid uuid, UpdateCallback callback, String callerPath);
 
-        void update(ContainerRoot model, UpdateCallback callback, String callerPath);
+        void update(IContainerRootMarshalled model, UpdateCallback callback, String callerPath);
 
         void registerModelListener(ModelListener listener, String callerPath);
 
