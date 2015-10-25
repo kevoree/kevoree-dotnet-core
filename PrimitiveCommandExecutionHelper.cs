@@ -14,25 +14,24 @@ namespace Org.Kevoree.Core
         {
             var processedActions = new HashSet<AdaptationPrimitive>();
             bool success = true;
-            //var cpt = adaptionModel.Count();
-            //Console.WriteLine("DEBUG : " +cpt + " adaptations planned");
             foreach (AdaptationPrimitive action in adaptionModel.ToArray())
             {
                 processedActions.Add(action);
-                if (!processAction(action, nodeInstance))
+                var resultAction = processAction(action, nodeInstance);
+                if (!resultAction)
                 {
                     success = false;
                     break;
-                }
-                
+                }   
             }
+
+            originCore.getLogger().Error("Adaptation failed");
 
             if (!success)
             {
-                // TODO : process all undo actions in reverse order !
                 foreach (var act in processedActions.Reverse())
                 {
-                    processAction(act, nodeInstance);
+                    processUndoAction(act, nodeInstance);
                 }
             }
             return success;
@@ -41,8 +40,13 @@ namespace Org.Kevoree.Core
         private static bool processAction(AdaptationPrimitive action, NodeType nodeInstance)
         {
             var primitive = nodeInstance.getPrimitive(action);
-            Console.WriteLine(primitive.ToString() + " " + primitive.Name());
             return primitive.Execute();
+        }
+
+        private static void processUndoAction(AdaptationPrimitive action, NodeType nodeInstance)
+        {
+            var primitive = nodeInstance.getPrimitive(action);
+            primitive.Undo();
         }
 
     }

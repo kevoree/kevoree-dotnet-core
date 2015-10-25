@@ -12,15 +12,16 @@ using org.kevoree.pmodeling.api.trace;
 using org.kevoree.kevscript;
 using org.kevoree.api.telemetry;
 using System.Runtime.Remoting;
+using java.util.logging;
 using Org.Kevoree.Core.Api.IMarshalled;
 using Org.Kevoree.Core.Marshalled;
 using org.kevoree.pmodeling.api.json;
 using org.kevoree.pmodeling.api;
+using Org.Kevoree.Log;
 
 
 namespace Org.Kevoree.Core
 {
-    [Serializable]
     public class KevoreeCoreBean : MarshalByRefObject, ContextAwareModelService
     {
         private readonly KevoreeListeners modelListeners;
@@ -29,12 +30,11 @@ namespace Org.Kevoree.Core
         private BlockingCollection<Action> scheduler = new BlockingCollection<Action>(new ConcurrentQueue<Action>());
         private string nodeName;
         private IContainerRootMarshalled pending = null;
-        //private MethodAnnotationResolver resolver;
-        //private java.util.Date lastDate;
         private BootstrapService bootstrapService;
         private TupleLockCallBack currentLock;
         private volatile UUIDModel model;
         private readonly LinkedList<UUIDModel> models = new LinkedList<UUIDModel>();
+        private LoggerMaster loggerMaster;
 
         public KevoreeCoreBean()
         {
@@ -49,6 +49,11 @@ namespace Org.Kevoree.Core
         public KevoreeFactory getFactory()
         {
             return this.kevoreeFactory;
+        }
+
+        public void initLog(Org.Kevoree.Log.Api.Level level)
+        {
+            this.loggerMaster = new LoggerMaster(level, this.nodeName);
         }
 
         private TupleLockCallBack getCurrentLock()
@@ -66,7 +71,7 @@ namespace Org.Kevoree.Core
                 //FlexyClassLoader kcl = bootstrapService.installTypeDefinition(nodeInstance.getTypeDefinition());
                 //Object newInstance = bootstrapService.createInstance(nodeInstance, kcl);
                 var newInstance = bootstrapService.createInstance(nodeInstance);
-                bootstrapService.injectDictionary(nodeInstance, newInstance, false);
+                //bootstrapService.injectDictionary(nodeInstance, newInstance, false);
                 //throw new NotImplementedException("TODO : ici faire le chargement dynamique via NuGet (je crois)");
 
                 // scan pour une classe d'un type ou d'un autre, on garde toujours la première trouvée
@@ -244,12 +249,6 @@ namespace Org.Kevoree.Core
                             // TODO : clean up -> cloned
                             var newmodel2 = CloneContainerRoot(newmodel);
 
-                            /*  start serialize model */
-                            /*var kf = new org.kevoree.factory.DefaultKevoreeFactory();
-                            var serialized = kf.createJSONSerializer().serialize(newmodel2);
-                            Console.WriteLine(serialized);*/
-                            /*  end serialize model */
-
                             var traces = modelCompare.diff(currentModel, newmodel2);
                             AdaptationModel adaptationModel = nodeInstance.plan(new ContainerRootMarshalled(currentModel), newmodel, new TracesMarshalled(traces));
                             // Execution of the adaptation
@@ -280,7 +279,7 @@ namespace Org.Kevoree.Core
                             deployResult = false;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         deployResult = false;
                     }
@@ -320,22 +319,13 @@ namespace Org.Kevoree.Core
             var kf = new DefaultKevoreeFactory();
             JSONModelLoader loader = new JSONModelLoader(kf);
             var serialized = newmodel.serialize();
-            Console.WriteLine("ContainerRoot >>>> " + serialized);
+            //Console.WriteLine("ContainerRoot >>>> " + serialized);
             return (ContainerRoot)loader.loadModelFromString(serialized).get(0);
         }
 
         private ContainerNode CloneContainerNode(IContainerNodeMarshalled newmodel)
         {
-
-
             return newmodel.getDelegate();
-            /*
-            var fac = new DefaultKevoreeFactory();
-            var loader = fac.createJSONLoader();
-            var serialized = newmodel.serialize();
-            Console.WriteLine("ContainerNode >>>> " + serialized);
-            var parsed = loader.loadModelFromString(serialized);
-            return (ContainerNode)parsed.get(0);*/
         }
 
         private void switchToNewModel(IContainerRootMarshalled c)
@@ -571,6 +561,11 @@ namespace Org.Kevoree.Core
             {
                 callback(false);
             }
+        }
+
+        public LoggerMaster getLogger()
+        {
+            return this.loggerMaster;
         }
     }
 }
