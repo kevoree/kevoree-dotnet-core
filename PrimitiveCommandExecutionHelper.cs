@@ -25,14 +25,17 @@ namespace Org.Kevoree.Core
                 }   
             }
 
-            originCore.getLogger().Error("Adaptation failed");
-
             if (!success)
             {
+                originCore.getLogger().Error("Adaptation failed");
                 foreach (var act in processedActions.Reverse())
                 {
                     processUndoAction(act, nodeInstance);
                 }
+            }
+            else
+            {
+                originCore.getLogger().Debug("Adaptation succeeded");
             }
             return success;
         }
