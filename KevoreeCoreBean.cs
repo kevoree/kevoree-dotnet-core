@@ -64,13 +64,13 @@ namespace Org.Kevoree.Core
         private INodeRunner bootstrapNodeType(IContainerRootMarshalled model, String nodeName)
         {
             var containerNode = model.findNodesByID(nodeName);
-            ContainerNode nodeInstance = CloneContainerNode(containerNode);
-            if (nodeInstance != null)
+
+            if (containerNode != null)
             {
                 // TODO : ici charger le component
                 //FlexyClassLoader kcl = bootstrapService.installTypeDefinition(nodeInstance.getTypeDefinition());
                 //Object newInstance = bootstrapService.createInstance(nodeInstance, kcl);
-                var newInstance = bootstrapService.createInstance(nodeInstance);
+                var newInstance = bootstrapService.createInstance(containerNode);
                 //bootstrapService.injectDictionary(nodeInstance, newInstance, false);
                 //throw new NotImplementedException("TODO : ici faire le chargement dynamique via NuGet (je crois)");
 
@@ -298,7 +298,7 @@ namespace Org.Kevoree.Core
                         }
                     }
                     long milliEnd = java.lang.System.currentTimeMillis() - milli;
-                    pending = null;
+                    //pending = null;
                     return deployResult;
 
                 }
@@ -319,13 +319,15 @@ namespace Org.Kevoree.Core
             var kf = new DefaultKevoreeFactory();
             JSONModelLoader loader = new JSONModelLoader(kf);
             var serialized = newmodel.serialize();
-            //Console.WriteLine("ContainerRoot >>>> " + serialized);
             return (ContainerRoot)loader.loadModelFromString(serialized).get(0);
         }
 
         private ContainerNode CloneContainerNode(IContainerNodeMarshalled newmodel)
         {
-            return newmodel.getDelegate();
+            var kf = new DefaultKevoreeFactory();
+            JSONModelLoader loader = new JSONModelLoader(kf);
+            var serialized = newmodel.serialize();
+            return (ContainerNode)loader.loadModelFromString(serialized).get(0);
         }
 
         private void switchToNewModel(IContainerRootMarshalled c)
