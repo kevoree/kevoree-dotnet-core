@@ -10,7 +10,7 @@ using Org.Kevoree.Core.Api.Handler;
 using Org.Kevoree.Core.Api.Adaptation;
 using org.kevoree.pmodeling.api.trace;
 using org.kevoree.kevscript;
-using org.kevoree.api.telemetry;
+//using org.kevoree.api.telemetry;
 using System.Runtime.Remoting;
 using java.util.logging;
 using Org.Kevoree.Core.Api.IMarshalled;
