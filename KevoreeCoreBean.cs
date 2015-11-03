@@ -278,8 +278,9 @@ namespace Org.Kevoree.Core
                             deployResult = false;
                         }
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
+                        loggerMaster.Error(e.StackTrace);
                         deployResult = false;
                     }
                     if (deployResult)
