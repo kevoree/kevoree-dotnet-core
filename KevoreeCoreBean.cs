@@ -66,16 +66,7 @@ namespace Org.Kevoree.Core
 
             if (containerNode != null)
             {
-                // TODO : ici charger le component
-                //FlexyClassLoader kcl = bootstrapService.installTypeDefinition(nodeInstance.getTypeDefinition());
-                //Object newInstance = bootstrapService.createInstance(nodeInstance, kcl);
-                var newInstance = bootstrapService.createInstance(containerNode);
-                //bootstrapService.injectDictionary(nodeInstance, newInstance, false);
-                //throw new NotImplementedException("TODO : ici faire le chargement dynamique via NuGet (je crois)");
-
-                // scan pour une classe d'un type ou d'un autre, on garde toujours la première trouvée
-
-                return newInstance;
+                return bootstrapService.createInstance(containerNode);
             }
             else
             {
