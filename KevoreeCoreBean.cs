@@ -8,14 +8,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Org.Kevoree.Core.Api.Handler;
 using Org.Kevoree.Core.Api.Adaptation;
-using org.kevoree.pmodeling.api.trace;
+using org.kevoree.modeling.api.trace;
 using org.kevoree.kevscript;
 using System.Runtime.Remoting;
 using java.util.logging;
 using Org.Kevoree.Core.Api.IMarshalled;
 using Org.Kevoree.Core.Marshalled;
-using org.kevoree.pmodeling.api.json;
-using org.kevoree.pmodeling.api;
+using org.kevoree.modeling.api.json;
+using org.kevoree.modeling.api;
 using Org.Kevoree.Log;
 
 
@@ -421,7 +421,7 @@ namespace Org.Kevoree.Core
                 var serialized = model.getModel().serialize();
                 var kf = new org.kevoree.factory.DefaultKevoreeFactory();
                 var newModel = (ContainerRoot)kf.createJSONLoader().loadModelFromString(serialized).get(0);
-                new KevScriptEngine().execute(script, newModel);
+                new KevScriptEngine("http://registry.kevoree.org").execute(script, newModel);
                 bool res = internalUpdateModel(new ContainerRootMarshalled(newModel), callerPath);
                 new Thread(new ThreadStart(() =>
                 {

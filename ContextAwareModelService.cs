@@ -1,5 +1,6 @@
 ﻿using org.kevoree;
-using org.kevoree.pmodeling.api.trace;
+using org.kevoree.modeling.api.trace;
+//using org.kevoree.pmodeling.api.trace;
 using Org.Kevoree.Core.Api;
 using Org.Kevoree.Core.Api.Handler;
 using Org.Kevoree.Core.Api.IMarshalled;
@@ -11,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Org.Kevoree.Core
 {
-    public interface ContextAwareModelService
+	public interface ContextAwareModelService
     {
         UUIDModel getCurrentModel();
 
@@ -33,6 +34,6 @@ namespace Org.Kevoree.Core
 
         void submitScript(String script, Org.Kevoree.Core.Api.UpdateCallback callback, String callerPath);
 
-        void submitSequence(TraceSequence sequence, Org.Kevoree.Core.Api.UpdateCallback callback, String callerPath);
+        void submitSequence(org.kevoree.modeling.api.trace.TraceSequence sequence, Org.Kevoree.Core.Api.UpdateCallback callback, String callerPath);
     }
 }

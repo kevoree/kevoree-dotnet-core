@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>Org.Kevoree.Core</id>
-    <version>5.4.0</version>
+    <version>5.4.1</version>
     <title>Kevoree Core</title>
     <authors>Manuel Leduc</authors>
     <owners>Kevoree</owners>
@@ -17,10 +17,10 @@
     <dependencies>
       <dependency id="IKVM" version="[8.1.5717]"  />
       <dependency id="NUnit" version="3.6.0"  />
-      <dependency id="Org.Kevoree.Core.KevScript" version="5.4.0"  />
-      <dependency id="Org.Kevoree.Core.Model" version="5.4.1"  />
+      <dependency id="Org.Kevoree.Core.KevScript" version="5.4.2"  />
+      <dependency id="Org.Kevoree.Core.Model" version="5.4.7"  />
       <dependency id="Org.Kevoree.Log.Api" version="1.0.0"  />
-      <dependency id="org-kevoree-api" version="5.4.0"  />
+      <dependency id="org-kevoree-api" version="5.4.3"  />
       <dependency id="org-kevoree-log" version="1.2.2"  />
     </dependencies>
   </metadata>
