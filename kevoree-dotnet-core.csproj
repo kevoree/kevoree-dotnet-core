@@ -40,15 +40,6 @@
     <Reference Include="kevoree-dotnet-log-api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>packages\Org.Kevoree.Log.Api.1.0.0\lib\net40\kevoree-dotnet-log-api.dll</HintPath>
     </Reference>
-    <Reference Include="KevoreeModel">
-      <HintPath>packages\Org.Kevoree.Core.Model.5.4.7\lib\KevoreeModel.dll</HintPath>
-    </Reference>
-    <Reference Include="KevScript">
-      <HintPath>packages\Org.Kevoree.Core.KevScript.5.4.2\lib\KevScript.dll</HintPath>
-    </Reference>
-    <Reference Include="Core.Api">
-      <HintPath>packages\org-kevoree-api.5.4.3\lib\net45\Core.Api.dll</HintPath>
-    </Reference>
     <Reference Include="IKVM.OpenJDK.Core">
       <HintPath>packages\IKVM.8.1.5717.0\lib\IKVM.OpenJDK.Core.dll</HintPath>
     </Reference>
@@ -135,6 +126,15 @@
     </Reference>
     <Reference Include="Log">
       <HintPath>packages\org-kevoree-log.1.2.2\lib\net45\Log.dll</HintPath>
+    </Reference>
+    <Reference Include="KevScript">
+      <HintPath>packages\Org.Kevoree.Core.KevScript.5.4.4\lib\KevScript.dll</HintPath>
+    </Reference>
+    <Reference Include="KevoreeModel">
+      <HintPath>packages\Org.Kevoree.Core.Model.5.4.9\lib\KevoreeModel.dll</HintPath>
+    </Reference>
+    <Reference Include="Core.Api">
+      <HintPath>packages\org-kevoree-api.5.4.4\lib\net45\Core.Api.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
